@@ -12,17 +12,27 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  min-height: 100%;
+}
+
 body,
 #root {
   width: 100%;
-  height: 100%;
   min-width: 320px;
   margin: 0;
 }
 
 body {
-  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 button,
