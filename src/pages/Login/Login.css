@@ -592,3 +592,28 @@
     margin-top: 16px;
   }
 }
+
+.login-feedback {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.login-feedback--error {
+  background: #fff1f1;
+  color: #9b1c24;
+}
+
+.login-feedback--success {
+  background: #eef7f1;
+  color: #24633b;
+}
+
+.account-mode-button:disabled,
+.login-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
