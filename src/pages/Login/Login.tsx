@@ -1,30 +1,8 @@
 ﻿import { useState, type FormEvent } from 'react'
+import { BookOpen, ChartNoAxesColumnIncreasing, GraduationCap, LockKeyhole, Mail, Sparkles, UserRound } from 'lucide-react'
 import './Login.css'
 
 type Feedback = { kind: 'success' | 'error'; message: string } | null
-
-function GraduationMark() {
-  return (
-    <svg className="graduation-mark" viewBox="0 0 64 48" aria-hidden="true">
-      <path d="M2 14 32 2l30 12-30 12L2 14Z" fill="currentColor" />
-      <path d="M13 20v12c10 9 28 9 38 0V20L32 29 13 20Z" fill="currentColor" />
-      <path d="M60 15v17" stroke="#b6232d" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="60" cy="35" r="3" fill="#b6232d" />
-    </svg>
-  )
-}
-
-function PersonIcon() {
-  return <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5 20v-1.5a7 7 0 0 1 14 0V20H5Z" /></svg>
-}
-
-function MailIcon() {
-  return <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 6 7.5-6" /></svg>
-}
-
-function LockIcon() {
-  return <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>
-}
 
 function getAuthErrorMessage(error: unknown) {
   const code = (error as { code?: string })?.code
@@ -46,7 +24,7 @@ function getAuthErrorMessage(error: unknown) {
   }
 }
 
-function Login() {
+function Login({ onAuthenticated }: { onAuthenticated: (student: { uid: string; name: string; email: string }) => void }) {
   const [isExistingAccount, setIsExistingAccount] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<Feedback>(null)
@@ -73,10 +51,13 @@ function Login() {
       const { auth, db } = await firebase.getFirebaseServices()
 
       if (isExistingAccount) {
-        await authSdk.signInWithEmailAndPassword(auth, email, password)
-        setFeedback({ kind: 'success', message: 'Sesión iniciada correctamente.' })
+        const credential = await authSdk.signInWithEmailAndPassword(auth, email, password)
+        const fullName = credential.user.displayName?.trim() || email.split('@')[0]
+        onAuthenticated({ uid: credential.user.uid, name: fullName || email.split('@')[0], email: credential.user.email || email })
       } else {
         const credential = await authSdk.createUserWithEmailAndPassword(auth, email, password)
+        onAuthenticated({ uid: credential.user.uid, name: `${names} ${lastNames}`.trim(), email: credential.user.email || email })
+        await authSdk.updateProfile(credential.user, { displayName: `${names} ${lastNames}`.trim() })
         try {
           await firestoreSdk.setDoc(firestoreSdk.doc(db, 'users', credential.user.uid), {
             nombres: names,
@@ -91,7 +72,6 @@ function Login() {
           })
           return
         }
-        setFeedback({ kind: 'success', message: 'Cuenta creada e ingreso correcto.' })
       }
     } catch (error) {
       setFeedback({ kind: 'error', message: getAuthErrorMessage(error) })
@@ -116,9 +96,9 @@ function Login() {
               <p>Refuerza tus conocimientos en Comunicación y Matemática con un plan de estudio estructurado.</p>
             </div>
             <ul className="story-benefits">
-              <li><span className="benefit-icon" aria-hidden="true">▤</span>Temario completo</li>
-              <li><span className="benefit-icon" aria-hidden="true">▥</span>Avance progresivo</li>
-              <li><span className="benefit-icon" aria-hidden="true">✧</span>Ejercicios por tema</li>
+              <li><span className="benefit-icon" aria-hidden="true"><BookOpen size={18} /></span>Temario completo</li>
+              <li><span className="benefit-icon" aria-hidden="true"><ChartNoAxesColumnIncreasing size={18} /></span>Avance progresivo</li>
+              <li><span className="benefit-icon" aria-hidden="true"><Sparkles size={18} /></span>Ejercicios por tema</li>
             </ul>
           </div>
         </aside>
@@ -126,7 +106,7 @@ function Login() {
         <div className="login-panel">
           <div className="login-panel-inner">
             <header className="login-heading">
-              <GraduationMark />
+              <GraduationCap className="graduation-mark" aria-hidden="true" />
               <h2 id="login-title">Comienza ahora</h2>
               {!isExistingAccount && <p>Ingresa tus datos para comenzar</p>}
             </header>
@@ -141,7 +121,7 @@ function Login() {
                 aria-hidden={isExistingAccount}
                 inert={isExistingAccount}
               >
-                <label htmlFor="names"><span className="field-icon"><PersonIcon /></span>Nombres</label>
+                <label htmlFor="names"><span className="field-icon"><UserRound /></span>Nombres</label>
                 <input
                   id="names"
                   name="names"
@@ -157,7 +137,7 @@ function Login() {
                 aria-hidden={isExistingAccount}
                 inert={isExistingAccount}
               >
-                <label htmlFor="lastNames"><span className="field-icon"><PersonIcon /></span>Apellidos</label>
+                <label htmlFor="lastNames"><span className="field-icon"><UserRound /></span>Apellidos</label>
                 <input
                   id="lastNames"
                   name="lastNames"
@@ -169,7 +149,7 @@ function Login() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="email"><span className="field-icon"><MailIcon /></span>Correo electrónico</label>
+                <label htmlFor="email"><span className="field-icon"><Mail /></span>Correo electrónico</label>
                 <input
                   id="email"
                   name="email"
@@ -180,7 +160,7 @@ function Login() {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="password"><span className="field-icon"><LockIcon /></span>Clave</label>
+                <label htmlFor="password"><span className="field-icon"><LockKeyhole /></span>Clave</label>
                 <input
                   id="password"
                   name="password"
