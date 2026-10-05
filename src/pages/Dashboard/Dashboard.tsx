@@ -136,7 +136,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
         ) : section === 'calendar' ? (
           <section className="calendar-section">
             <div className="section-heading"><div className="heading-title"><CalendarDays className="calendar-symbol" size={26} aria-hidden="true" /><div><h2>Calendario de estudio</h2><p>Cada día desbloquea nuevos contenidos. Completa los videos para acceder al siguiente.</p></div></div>
-              <div className="status-legend"><span><i className="legend-dot available-dot" />Disponible</span><span><i className="legend-dot locked-dot" />Bloqueado</span><span><i className="legend-dot progress-dot" />En progreso</span><span><i className="legend-dot complete-dot" />Completado</span></div>
+              <div className="status-legend"><span><i className="legend-dot available-dot" />Disponible</span><span><i className="legend-dot locked-dot" />Bloqueado</span><span><i className="legend-dot complete-dot" />Completado</span></div>
             </div>
             <div className="days-grid">{days.map((day) => { const StatusIcon = day.status === 'locked' ? LockKeyhole : day.status === 'completed' ? CircleCheck : CirclePlay; return <button key={day.day} className={`day-card status-${day.status}`} disabled={day.status === 'locked'} onClick={() => openDay(day.day)}>
               <span className="day-card-top"><StatusIcon className="day-state-icon" size={16} strokeWidth={1.8} aria-hidden="true" /><strong>Día {day.day}</strong></span>
