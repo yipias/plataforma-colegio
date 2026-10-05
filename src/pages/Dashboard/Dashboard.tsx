@@ -141,7 +141,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
             <div className="days-grid">{days.map((day) => { const StatusIcon = day.status === 'locked' ? LockKeyhole : day.status === 'completed' ? CircleCheck : CirclePlay; return <button key={day.day} className={`day-card status-${day.status}`} disabled={day.status === 'locked'} onClick={() => openDay(day.day)}>
               <span className="day-card-top"><StatusIcon className="day-state-icon" size={16} strokeWidth={1.8} aria-hidden="true" /><strong>Día {day.day}</strong></span>
               <strong className="day-course">{courseLabel(day.course)}</strong><span className="day-title">{day.title}</span>
-              <span className="day-meter"><i style={{ width: `${day.progress}%` }} /></span><span className="day-percent">{day.progress}%</span>
+              <span className="day-progress-line"><span className="day-meter"><i style={{ width: `${day.progress}%` }} /></span><span className="day-percent">{day.progress}%</span></span>
             </button> })}</div>
           </section>
         ) : section === 'progress' ? (

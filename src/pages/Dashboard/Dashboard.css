@@ -62,9 +62,10 @@
 .day-trailing { margin-left: auto; color: #74869c; font-size: 11px; }
 .day-course { margin: 7px 0 2px 22px; font-size: 10px; }
 .day-title { min-height: 27px; margin-left: 22px; color: #718198; font-size: 10px; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.day-meter { height: 3px; width: calc(100% - 32px); margin: auto 0 0 22px; overflow: hidden; border-radius: 4px; background: #dce3eb; }
+.day-progress-line { width: calc(100% - 22px); margin: auto 0 0 22px; display: flex; align-items: center; gap: 8px; }
+.day-meter { height: 3px; min-width: 0; flex: 1; margin: 0; overflow: hidden; border-radius: 4px; background: #dce3eb; }
 .day-meter i { display: block; height: 100%; background: #2586f4; border-radius: inherit; }
-.day-percent { position: absolute; right: 10px; bottom: 7px; font-size: 10px; font-weight: 700; }
+.day-percent { position: static; flex: 0 0 31px; text-align: right; font-size: 10px; font-weight: 700; }
 .mobile-header, .mobile-bottom-nav { display: none; }
 .day-detail, .content-panel { max-width: 1050px; margin: 20px auto; padding: 24px; background: white; border-radius: 13px; box-shadow: 0 2px 8px #10284e0b; }
 .back-link { padding: 0; margin-bottom: 22px; display: inline-flex; align-items: center; gap: 3px; border: 0; background: none; color: #1679e9; font-weight: 650; cursor: pointer; }
@@ -107,6 +108,9 @@
   .mobile-header img { width: min(42vw, 142px); height: 48px; object-fit: cover; object-position: center; }
   .days-grid, .day-card, .day-detail, .content-panel { min-width: 0; max-width: 100%; }
   .status-legend { max-width: 100%; }
+  .day-progress-line { width: calc(100% - 22px); margin-left: 22px; }
+  .day-progress-line .day-meter { width: auto; margin: 0; }
+  .day-progress-line .day-percent { position: static; right: auto; bottom: auto; }
 }
 @media (max-width: 360px) {
   .dashboard-main { padding-right: 9px; padding-left: 9px; }
