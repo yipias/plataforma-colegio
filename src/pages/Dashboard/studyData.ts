@@ -7,6 +7,8 @@ export type StudyDay = {
   course: Course
   title: string
   videosCompleted: number
+  completedVideoIndexes: number[]
+  completedExerciseIndexes: number[]
   totalVideos: number
   exercisesCompleted: number
   totalExercises: number
@@ -65,22 +67,36 @@ const curriculum: Array<[Course, string]> = [
   ['practice', 'Simulacro global final'],
 ]
 
-export type SavedDayProgress = { videosCompleted: number; exercisesCompleted: number }
+export type SavedDayProgress = { videosCompleted?: number; completedVideoIndexes?: number[]; exercisesCompleted?: number; completedExerciseIndexes?: number[] }
 export type SavedProgress = Record<number, SavedDayProgress>
+
+export const INTRO_PLAYLIST_ID = 'PLeySRPnY35dF1DoKO_5VyboxzdT4UyyPA'
+export const DAY_ONE_VIDEO_IDS = [
+  'v4h6KZkQ1Q0', 'lTpbx63UK6M', 'VvvtknaN0j0', 'ASvBBYxDhE0',
+  'WS5rtL9tTpU', 'Ld4gka7goSg', 'jdqwzCL_PG0', 'UbqjPCAjUfg',
+  '1aJTsc11Czs', '29Z-cRvi7RQ', 'x2VWk-AwN9w', 'zfX5Jz_ZtZI',
+  'Z_tC5AuqKSI', 'o-m0eRWfsxI', 'Yn8pLJWADD4', 'tFxkvmq9zAs',
+] as const
 
 export function createStudyDays(saved: SavedProgress): StudyDay[] {
   const days = curriculum.map(([course, title], index) => {
     const day = index + 1
     const isPractice = course === 'practice'
-    const totalVideos = isPractice ? 0 : 3
+    const totalVideos = isPractice ? 0 : day === 1 ? 16 : 3
     const totalExercises = isPractice ? 0 : 20
     const progress = saved[day] || { videosCompleted: 0, exercisesCompleted: 0 }
-    const videosCompleted = Math.min(totalVideos, Math.max(0, progress.videosCompleted || 0))
-    const exercisesCompleted = Math.min(totalExercises, Math.max(0, progress.exercisesCompleted || 0))
+    const completedVideoIndexes = progress.completedVideoIndexes
+      ? [...new Set(progress.completedVideoIndexes.filter((videoIndex) => Number.isInteger(videoIndex) && videoIndex >= 0 && videoIndex < totalVideos))]
+      : Array.from({ length: Math.min(totalVideos, Math.max(0, progress.videosCompleted || 0)) }, (_, videoIndex) => videoIndex)
+    const videosCompleted = completedVideoIndexes.length
+    const completedExerciseIndexes = progress.completedExerciseIndexes
+      ? [...new Set(progress.completedExerciseIndexes.filter((exerciseIndex) => Number.isInteger(exerciseIndex) && exerciseIndex >= 0 && exerciseIndex < totalExercises))]
+      : Array.from({ length: Math.min(totalExercises, Math.max(0, progress.exercisesCompleted || 0)) }, (_, exerciseIndex) => exerciseIndex)
+    const exercisesCompleted = completedExerciseIndexes.length
     const percent = isPractice
       ? (progress.exercisesCompleted ? 100 : 0)
       : Math.min(100, Math.round((videosCompleted / totalVideos) * 60 + (exercisesCompleted / totalExercises) * 40))
-    return { id: day, day, course, title, videosCompleted, totalVideos, exercisesCompleted, totalExercises, progress: percent, status: 'locked' as DayStatus }
+    return { id: day, day, course, title, videosCompleted, completedVideoIndexes, exercisesCompleted, completedExerciseIndexes, totalVideos, totalExercises, progress: percent, status: 'locked' as DayStatus }
   })
 
   let unlocked = true

@@ -1,11 +1,34 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { BookOpen, CalendarDays, ChartNoAxesColumnIncreasing, Check, ChevronDown, ChevronLeft, CircleCheck, CirclePlay, Calculator, LockKeyhole, LogOut, Menu, Play, Plus, UserRound, X, type LucideIcon } from 'lucide-react'
-import type { SavedProgress } from './studyData'
-import { createStudyDays, courseLabel } from './studyData'
+import { BookOpen, CalendarDays, ChartNoAxesColumnIncreasing, Check, ChevronDown, ChevronLeft, CircleCheck, CirclePlay, Calculator, LockKeyhole, LogOut, Menu, Play, UserRound, X, type LucideIcon } from 'lucide-react'
+import type { SavedDayProgress, SavedProgress } from './studyData'
+import { createStudyDays, courseLabel, DAY_ONE_VIDEO_IDS } from './studyData'
 
 type Student = { uid: string; name: string; email: string }
 type Section = 'calendar' | 'progress' | 'communication' | 'mathematics' | 'profile'
 const universityLogo = `${import.meta.env.BASE_URL}universidad-de-piura-logo.png`
+
+const dayOneExercises = [
+  { question: '7 + (-3) - 5', options: ['-5', '-3', '-1', '1', '5'], answer: 2 },
+  { question: '12 - (-4) + (-7)', options: ['1', '5', '7', '9', '23'], answer: 3 },
+  { question: '8 - (3 - 5)', options: ['0', '6', '8', '10', '12'], answer: 3 },
+  { question: '-6 - (-2 + 7)', options: ['-15', '-11', '-7', '1', '11'], answer: 1 },
+  { question: '14 - [6 - (3 - 8)]', options: ['-3', '1', '3', '5', '11'], answer: 2 },
+  { question: '4 - 3(2 - 5)', options: ['-13', '-5', '5', '9', '13'], answer: 4 },
+  { question: '2[5 - (3 - 7)] - 4', options: ['6', '10', '12', '14', '18'], answer: 3 },
+  { question: '18 \u00f7 3 + 2 \u00d7 5 - 4', options: ['6', '8', '10', '12', '16'], answer: 3 },
+  { question: '30 - 4(6 - 2) \u00f7 2', options: ['14', '18', '22', '26', '34'], answer: 2 },
+  { question: '48 \u00f7 [2(3 + 5)]', options: ['1.5', '2', '3', '8', '12'], answer: 2 },
+  { question: '5 + 2\u00b3 \u00d7 3', options: ['21', '24', '29', '35', '49'], answer: 2 },
+  { question: '\u221a81 + 4(7 - 5)', options: ['11', '13', '15', '17', '21'], answer: 3 },
+  { question: '2\u2074 - \u221a49 + 3\u00b2', options: ['2', '10', '16', '18', '32'], answer: 3 },
+  { question: '(-3)\u00b2 + (-2)\u00b3', options: ['-17', '-1', '0', '1', '17'], answer: 3 },
+  { question: '-3\u00b2 + (-3)\u00b2', options: ['-18', '-9', '0', '9', '18'], answer: 2 },
+  { question: '[2\u00b3 + \u221a64] \u00f7 4', options: ['2', '4', '6', '8', '16'], answer: 1 },
+  { question: '6 - {2[3 - (5 - 8)]}', options: ['-18', '-12', '-6', '6', '18'], answer: 2 },
+  { question: '2\u00b3[10 - \u221a36] + 4', options: ['12', '28', '32', '36', '40'], answer: 3 },
+  { question: '(18 \u00f7 3)\u00b2 - 5 \u00d7 4', options: ['4', '8', '12', '16', '20'], answer: 3 },
+  { question: '-2\u2074 + (-2)\u2074 + \u221a100 \u00f7 2', options: ['-27', '-5', '0', '5', '37'], answer: 3 },
+]
 
 const navItems: Array<{ id: Section; label: string; icon: LucideIcon }> = [
   { id: 'calendar', label: 'Calendario', icon: CalendarDays },
@@ -31,6 +54,8 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
     return match ? Number(match[1]) : null
   })
   const [menuOpen, setMenuOpen] = useState(false)
+  const [activeVideo, setActiveVideo] = useState<{ day: number; videoIndex: number } | null>(null)
+  const [exerciseSelections, setExerciseSelections] = useState<Record<number, number>>({})
   const days = useMemo(() => createStudyDays(saved), [saved])
   const selected = selectedDay ? days[selectedDay - 1] : undefined
   const completedDays = days.filter((day) => day.status === 'completed').length
@@ -73,9 +98,42 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
     window.scrollTo(0, 0)
   }
 
-  function updateDay(day: number, change: (current: { videosCompleted: number; exercisesCompleted: number }) => { videosCompleted: number; exercisesCompleted: number }) {
+  function updateDay(day: number, change: (current: SavedDayProgress) => SavedDayProgress) {
     setSaved((current) => ({ ...current, [day]: change(current[day] || { videosCompleted: 0, exercisesCompleted: 0 }) }))
   }
+
+  function setVideoCompleted(day: number, videoIndex: number, isCompleted: boolean) {
+    const currentIndexes = days[day - 1]?.completedVideoIndexes ?? []
+    updateDay(day, (current) => ({
+      ...current,
+      videosCompleted: undefined,
+      completedVideoIndexes: isCompleted
+        ? [...new Set([...(current.completedVideoIndexes ?? currentIndexes), videoIndex])]
+        : (current.completedVideoIndexes ?? currentIndexes).filter((index) => index !== videoIndex),
+    }))
+  }
+
+  function openVideo(day: number, videoIndex: number) {
+    setVideoCompleted(day, videoIndex, true)
+    setActiveVideo({ day, videoIndex })
+  }
+
+  function answerExercise(day: number, exerciseIndex: number, optionIndex: number) {
+    const correct = dayOneExercises[exerciseIndex]?.answer === optionIndex
+    setExerciseSelections((current) => ({ ...current, [exerciseIndex]: optionIndex }))
+    if (!correct) return
+    updateDay(day, (current) => {
+      const completed = current.completedExerciseIndexes ?? days[day - 1]?.completedExerciseIndexes ?? []
+      return { ...current, exercisesCompleted: undefined, completedExerciseIndexes: [...new Set([...completed, exerciseIndex])] }
+    })
+  }
+
+  useEffect(() => {
+    if (!activeVideo) return
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setActiveVideo(null) }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [activeVideo])
 
   return (
     <div className="dashboard-shell">
@@ -124,12 +182,30 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
               </div>
             ) : (
               <>
-                <div className="activity-card"><h3>Videos del tema</h3><p>Completa los tres videos para avanzar y desbloquear el siguiente día.</p>
+                <div className="activity-card"><h3>Videos del tema</h3><p>Completa los {selected.totalVideos} videos para avanzar y desbloquear el siguiente día.</p>
                   <div className="video-list">{Array.from({ length: selected.totalVideos }, (_, index) => (
-                    <label key={index} className="video-row"><span className={`video-dot${selected.videosCompleted > index ? ' is-done' : ''}`}>{selected.videosCompleted > index ? <Check size={15} /> : <Play size={13} />}</span><span>Video {index + 1}<small>{selected.videosCompleted > index ? 'Completado' : 'Pendiente'}</small></span><input type="checkbox" checked={selected.videosCompleted > index} onChange={(event) => updateDay(selected.day, (current) => ({ ...current, videosCompleted: event.target.checked ? Math.max(current.videosCompleted, index + 1) : Math.min(current.videosCompleted, index) }))} aria-label={`Marcar video ${index + 1} como completado`} /></label>
+                    <div key={index} className="video-row"><button className="video-open-button" onClick={() => openVideo(selected.day, index)} aria-label={`Reproducir video ${index + 1}`}><span className={`video-dot${selected.completedVideoIndexes.includes(index) ? ' is-done' : ''}`}>{selected.completedVideoIndexes.includes(index) ? <Check size={15} /> : <Play size={13} />}</span><span>Video {index + 1}<small>{selected.completedVideoIndexes.includes(index) ? 'Completado' : 'Pendiente'}</small></span></button><label className="video-check"><input type="checkbox" checked={selected.completedVideoIndexes.includes(index)} onChange={(event) => setVideoCompleted(selected.day, index, event.target.checked)} aria-label={`Marcar video ${index + 1} como completado`} /></label></div>
                   ))}</div>
                 </div>
-                <div className="activity-card exercise-card"><div><h3>Ejercicios</h3><p>Resueltos: {selected.exercisesCompleted} de 20</p></div><button className="secondary-action" disabled={selected.videosCompleted < selected.totalVideos || selected.exercisesCompleted >= 20} onClick={() => updateDay(selected.day, (current) => ({ ...current, exercisesCompleted: Math.min(20, current.exercisesCompleted + 1) }))}><Plus size={15} /> Registrar ejercicio</button></div>
+                {selected.day === 1 ? (
+                  <section className="activity-card exercise-quiz" aria-labelledby="exercise-quiz-title">
+                    <div className="quiz-heading"><div><h3 id="exercise-quiz-title">Ejercicios de pr&aacute;ctica</h3><p>Resueltos correctamente: {selected.exercisesCompleted} de 20</p></div><span className="quiz-counter">20 ejercicios</span></div>
+                    <div className="quiz-exercise-list">{dayOneExercises.map((exercise, exerciseIndex) => {
+                      const completed = selected.completedExerciseIndexes.includes(exerciseIndex)
+                      const selectedOption = exerciseSelections[exerciseIndex]
+                      const chosenCorrect = completed || selectedOption === exercise.answer
+                      return <article className={'quiz-exercise' + (completed ? ' is-correct' : selectedOption !== undefined ? ' is-incorrect' : '')} key={exerciseIndex}>
+                        <div className="quiz-question"><span>Ejercicio {exerciseIndex + 1}</span><strong>{exercise.question}</strong></div>
+                        <div className="quiz-options">{exercise.options.map((option, optionIndex) => {
+                          const isRight = optionIndex === exercise.answer && chosenCorrect
+                          const isWrongChoice = !completed && selectedOption === optionIndex && optionIndex !== exercise.answer
+                          return <button key={optionIndex} disabled={completed} className={'quiz-option' + (isRight ? ' is-correct' : isWrongChoice ? ' is-incorrect' : '')} onClick={() => answerExercise(selected.day, exerciseIndex, optionIndex)}><span>{String.fromCharCode(65 + optionIndex)}</span>{option}</button>
+                        })}</div>
+                        {selectedOption !== undefined && !completed && selectedOption !== exercise.answer && <p className="quiz-feedback is-encouragement">&iexcl;T&uacute; puedes, sigue intent&aacute;ndolo!</p>}
+                      </article>
+                    })}</div>
+                  </section>
+                ) : <div className="activity-card exercise-card"><div><h3>Ejercicios</h3><p>Resueltos: {selected.exercisesCompleted} de {selected.totalExercises}</p></div><p className="exercise-coming-soon">Los ejercicios de este d&iacute;a estar&aacute;n disponibles pr&oacute;ximamente.</p></div>}
               </>
             )}
           </section>
@@ -154,6 +230,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       </main>
 
       <nav className="mobile-bottom-nav" aria-label="Navegación inferior">{(['calendar', 'progress', 'communication', 'mathematics'] as Section[]).map((id) => { const item = navItems.find((entry) => entry.id === id)!; return <button key={id} className={section === id ? 'is-active' : ''} onClick={() => navigate(id)}><item.icon size={18} strokeWidth={1.8} aria-hidden="true" />{id === 'progress' ? 'Progreso' : item.label}</button> })}</nav>
+      {activeVideo && <div className="video-modal-backdrop" role="presentation" onClick={() => setActiveVideo(null)}><section className="video-modal" role="dialog" aria-modal="true" aria-label={`Día ${activeVideo.day}: Vídeo ${activeVideo.videoIndex + 1}`} onClick={(event) => event.stopPropagation()}><header><strong>Día {activeVideo.day}: Vídeo {activeVideo.videoIndex + 1}</strong><button className="video-modal-close" onClick={() => setActiveVideo(null)} aria-label="Cerrar video"><X size={20} /></button></header><div className="video-player-frame"><iframe src={`https://www.youtube-nocookie.com/embed/${DAY_ONE_VIDEO_IDS[activeVideo.videoIndex]}?autoplay=1&rel=0`} title={`Vídeo ${activeVideo.videoIndex + 1} de la lista de reproducción`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div></section></div>}
     </div>
   )
 }
