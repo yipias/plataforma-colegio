@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { BookOpen, CalendarDays, ChartNoAxesColumnIncreasing, Check, ChevronDown, ChevronLeft, CircleCheck, CirclePlay, Calculator, LockKeyhole, LogOut, Menu, Play, UserRound, X, type LucideIcon } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { BookOpen, CalendarDays, ChartNoAxesColumnIncreasing, Check, ChevronDown, ChevronLeft, CircleCheck, CirclePlay, Calculator, Cloud, CloudOff, LockKeyhole, LogOut, LoaderCircle, Menu, Play, UserRound, X, type LucideIcon } from 'lucide-react'
 import type { SavedDayProgress, SavedProgress } from './studyData'
 import { createStudyDays, courseLabel, DAY_ONE_VIDEO_IDS, DAY_TWO_VIDEO_IDS, migrateSavedProgress } from './studyData'
+import { getFirebaseServices } from '../../lib/firebase'
 
 type Student = { uid: string; name: string; email: string }
 type Section = 'calendar' | 'progress' | 'communication' | 'mathematics' | 'profile'
@@ -84,8 +85,20 @@ function readProgress(uid: string): SavedProgress {
   }
 }
 
+function cleanProgressForFirestore(progress: SavedProgress) {
+  return Object.fromEntries(Object.entries(progress).map(([day, value]) => [
+    day,
+    Object.fromEntries(Object.entries(value).filter(([, fieldValue]) => fieldValue !== undefined)),
+  ]))
+}
+
 function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => Promise<void> }) {
-  const [saved, setSaved] = useState<SavedProgress>(() => readProgress(student.uid))
+  const localSavedProgress = useMemo(() => readProgress(student.uid), [student.uid])
+  const [saved, setSaved] = useState<SavedProgress>(localSavedProgress)
+  const [progressReady, setProgressReady] = useState(false)
+  const [progressSyncState, setProgressSyncState] = useState<'loading' | 'saving' | 'saved' | 'error'>('loading')
+  const progressWriteQueue = useRef<Promise<void>>(Promise.resolve())
+  const progressWriteSequence = useRef(0)
   const [section, setSection] = useState<Section>('calendar')
   const [selectedDay, setSelectedDay] = useState<number | null>(() => {
     const match = window.location.pathname.match(/^\/day\/(\d+)\/?$/)
@@ -107,8 +120,64 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
   }, [days, selectedDay])
 
   useEffect(() => {
+    let active = true
+    setProgressReady(false)
+    setProgressSyncState('loading')
+
+    async function loadProgress() {
+      try {
+        const [{ db }, firestore] = await Promise.all([getFirebaseServices(), import('firebase/firestore')])
+        const snapshot = await firestore.getDoc(firestore.doc(db, 'users', student.uid))
+        if (!active) return
+
+        const profile = snapshot.data()
+        const remoteProgress = profile?.studyProgress
+        if (remoteProgress && typeof remoteProgress === 'object' && !Array.isArray(remoteProgress)) {
+          const stored = remoteProgress as SavedProgress
+          const remoteVersion = Number(profile.studyProgressVersion || 0)
+          setSaved(remoteVersion >= 2 ? stored : migrateSavedProgress(stored))
+        } else {
+          setSaved(localSavedProgress)
+        }
+        setProgressReady(true)
+      } catch {
+        if (!active) return
+        setSaved(localSavedProgress)
+        setProgressSyncState('error')
+        setProgressReady(true)
+      }
+    }
+
+    void loadProgress()
+    return () => { active = false }
+  }, [student.uid, localSavedProgress])
+
+  useEffect(() => {
+    if (!progressReady) return
+
     localStorage.setItem(`study-progress-${student.uid}`, JSON.stringify(saved))
-  }, [saved, student.uid])
+    setProgressSyncState('saving')
+    const timeout = window.setTimeout(() => {
+      const sequence = ++progressWriteSequence.current
+      void (async () => {
+        try {
+          const [{ db }, firestore] = await Promise.all([getFirebaseServices(), import('firebase/firestore')])
+          const write = progressWriteQueue.current.catch(() => undefined).then(() => firestore.setDoc(firestore.doc(db, 'users', student.uid), {
+              studyProgress: cleanProgressForFirestore(saved),
+              studyProgressVersion: 2,
+              studyProgressUpdatedAt: firestore.serverTimestamp(),
+            }, { merge: true }))
+          progressWriteQueue.current = write.then(() => undefined, () => undefined)
+          await write
+          if (sequence === progressWriteSequence.current) setProgressSyncState('saved')
+        } catch {
+          if (sequence === progressWriteSequence.current) setProgressSyncState('error')
+        }
+      })()
+    }, 250)
+
+    return () => window.clearTimeout(timeout)
+  }, [saved, student.uid, progressReady])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -174,6 +243,10 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [activeVideo])
 
+  if (!progressReady) {
+    return <main className="session-loading" aria-label="Cargando el progreso de tu cuenta"><div className="progress-loading-message"><span className="loading-spinner" /><p>Sincronizando tu progreso...</p></div></main>
+  }
+
   return (
     <div className="dashboard-shell">
       <header className="mobile-header">
@@ -207,6 +280,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       <main className="dashboard-main">
         <header className="desktop-topbar">
           <div><h1>¡Hola, {student.name.split(' ')[0]}!</h1><p>Sigue tu plan de estudio y avanza día a día.</p></div>
+          <span className={`progress-sync-indicator is-${progressSyncState}`} role="status" aria-live="polite" title={progressSyncState === 'error' ? 'No se pudo guardar el progreso en Firestore' : progressSyncState === 'saving' ? 'Guardando el progreso en Firestore' : 'Progreso sincronizado con tu cuenta'}>{progressSyncState === 'saving' ? <LoaderCircle size={15} className="sync-spinning" /> : progressSyncState === 'error' ? <CloudOff size={15} /> : <Cloud size={15} />}<span>{progressSyncState === 'saving' ? 'Guardando avance' : progressSyncState === 'error' ? 'Error al sincronizar' : 'Avance sincronizado'}</span></span>
           <button className="account-menu" onClick={() => navigate('profile')}><span className="avatar"><UserRound size={16} /></span><span>{student.name}</span><ChevronDown size={15} aria-hidden="true" /></button>
         </header>
 

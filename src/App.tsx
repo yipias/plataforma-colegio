@@ -105,7 +105,7 @@ function App() {
     )
   }
 
-  return <Dashboard student={student} onSignOut={handleSignOut} />
+  return <Dashboard key={student.uid} student={student} onSignOut={handleSignOut} />
 }
 
 async function loadStudentProfile(user: User): Promise<Student> {

@@ -32,6 +32,7 @@
 .progress-ring { --progress: 0%; width: 68px; height: 68px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(closest-side, #0c2c50 81%, transparent 83%), conic-gradient(#1682ff var(--progress), #546b84 0); color: white; }
 .progress-ring b { font-size: 14px; }
 .dashboard-main { min-width: 0; flex: 1; padding: 0 30px 42px; overflow-x: clip; }
+.progress-loading-message { display: grid; justify-items: center; gap: 12px; color: #73839a; font-size: 13px; }.progress-loading-message p { margin: 0; }.progress-sync-indicator { min-width: 0; display: inline-flex; align-items: center; gap: 6px; color: #57708a; font-size: 10px; white-space: nowrap; }.progress-sync-indicator.is-saved { color: #218a4b; }.progress-sync-indicator.is-error { color: #ad2c39; }.progress-sync-indicator.is-saving { color: #1679e9; }.sync-spinning { animation: spin .8s linear infinite; }
 .desktop-topbar { min-height: 92px; margin: 0 -12px 17px; padding: 15px 22px; background: #fff; border-radius: 0 0 12px 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 4px #10284e0d; }
 .desktop-topbar h1 { margin: 0 0 3px; font-size: 21px; letter-spacing: -.03em; }
 .desktop-topbar p { margin: 0; color: var(--dash-muted); font-size: 13px; }
@@ -92,7 +93,7 @@
   .dashboard-sidebar.is-open { transform: translateX(0); }
   .menu-scrim { position: fixed; z-index: 7; inset: 0; display: block; border: 0; background: #071a34a0; }
   .dashboard-main { padding: 0 13px 18px; }
-  .desktop-topbar { min-height: 72px; margin: 0 -13px 14px; padding: 13px 15px; border-radius: 0 0 10px 10px; }
+  .desktop-topbar { min-height: 72px; margin: 0 -13px 14px; padding: 13px 15px; border-radius: 0 0 10px 10px; }.progress-sync-indicator { margin-left: auto; }.progress-sync-indicator > span { display: none; }
   .desktop-topbar h1 { font-size: 19px; }.desktop-topbar p { font-size: 11px; }.account-menu { display: none; }
   .section-heading { gap: 12px; margin-bottom: 12px; }.heading-title { align-items: flex-start; }.calendar-symbol { font-size: 24px; }.heading-title h2 { font-size: 17px; }.heading-title p { max-width: 310px; font-size: 10px; line-height: 1.4; }.status-legend { gap: 9px; font-size: 9px; }
   .days-grid { grid-template-columns: minmax(0, 1fr); gap: 7px; }.day-card { min-height: 92px; padding: 9px 11px; border-radius: 10px; }.day-course { margin-top: 5px; }.day-title { min-height: auto; max-width: calc(100% - 18px); margin-bottom: 7px; -webkit-line-clamp: 1; }.day-meter { width: calc(100% - 43px); margin-left: 22px; }.day-percent { bottom: 7px; }
