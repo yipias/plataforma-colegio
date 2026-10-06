@@ -16,7 +16,7 @@ export type StudyDay = {
   status: DayStatus
 }
 
-const curriculum: Array<[Course, string]> = [
+const curriculumPattern: Array<[Course, string]> = [
   ['mathematics', 'Operaciones básicas y jerarquía de operaciones'],
   ['mathematics', 'Números naturales, primos, compuestos y divisibilidad'],
   ['communication', 'Formación de palabras y relaciones semánticas'],
@@ -67,8 +67,44 @@ const curriculum: Array<[Course, string]> = [
   ['practice', 'Simulacro global final'],
 ]
 
+const mathematicsTopics = [
+  'Operaciones b\u00e1sicas',
+  'Jerarqu\u00eda de operaciones',
+  ...curriculumPattern.filter(([course]) => course === 'mathematics').slice(1).map(([, title]) => title),
+]
+
+const curriculum: Array<[Course, string]> = []
+let nextMathematicsTopic = 0
+curriculumPattern.forEach(([course, title], index) => {
+  if (index === curriculumPattern.length - 1 && course === 'practice') {
+    curriculum.push(['mathematics', mathematicsTopics[nextMathematicsTopic++]])
+  }
+  curriculum.push(course === 'mathematics' ? [course, mathematicsTopics[nextMathematicsTopic++]] : [course, title])
+})
+
 export type SavedDayProgress = { videosCompleted?: number; completedVideoIndexes?: number[]; exercisesCompleted?: number; completedExerciseIndexes?: number[] }
 export type SavedProgress = Record<number, SavedDayProgress>
+
+export function migrateSavedProgress(saved: SavedProgress): SavedProgress {
+  const originalMathDays = curriculumPattern.flatMap(([course], index) => course === 'mathematics' ? [index + 1] : [])
+  const updatedMathDays = curriculum.flatMap(([course], index) => course === 'mathematics' ? [index + 1] : [])
+  const migrated: SavedProgress = {}
+
+  Object.entries(saved).forEach(([dayKey, progress]) => {
+    const oldDay = Number(dayKey)
+    const mathIndex = originalMathDays.indexOf(oldDay)
+    const newDay = mathIndex === 0
+      ? 1
+      : mathIndex > 0
+        ? updatedMathDays[mathIndex + 1]
+        : oldDay === curriculumPattern.length
+          ? curriculum.length
+          : oldDay
+    migrated[newDay ?? oldDay] = progress
+  })
+
+  return migrated
+}
 
 export const INTRO_PLAYLIST_ID = 'PLeySRPnY35dF1DoKO_5VyboxzdT4UyyPA'
 export const DAY_ONE_VIDEO_IDS = [
@@ -77,12 +113,16 @@ export const DAY_ONE_VIDEO_IDS = [
   '1aJTsc11Czs', '29Z-cRvi7RQ', 'x2VWk-AwN9w', 'zfX5Jz_ZtZI',
   'Z_tC5AuqKSI', 'o-m0eRWfsxI', 'Yn8pLJWADD4', 'tFxkvmq9zAs',
 ] as const
+export const DAY_TWO_VIDEO_IDS = [
+  'dibwDpi4YcM', '647luWqJv1o', 'Nyg41Uer1Jc', 'f7OFnrLgW6M',
+  'mhKRnS-b-No', 'YwAS-gj0VZY', 'gzoUgFQQkS4',
+] as const
 
 export function createStudyDays(saved: SavedProgress): StudyDay[] {
   const days = curriculum.map(([course, title], index) => {
     const day = index + 1
     const isPractice = course === 'practice'
-    const totalVideos = isPractice ? 0 : day === 1 ? 16 : 3
+    const totalVideos = isPractice ? 0 : day === 1 ? DAY_ONE_VIDEO_IDS.length : day === 2 ? DAY_TWO_VIDEO_IDS.length : 3
     const totalExercises = isPractice ? 0 : 20
     const progress = saved[day] || { videosCompleted: 0, exercisesCompleted: 0 }
     const completedVideoIndexes = progress.completedVideoIndexes
