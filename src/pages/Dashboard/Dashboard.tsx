@@ -175,6 +175,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
   const [progressSyncError, setProgressSyncError] = useState<string | null>(null)
   const progressWriteQueue = useRef<Promise<void>>(Promise.resolve())
   const progressWriteSequence = useRef(0)
+  const connectionTimestampPending = useRef(true)
   const [section, setSection] = useState<Section>('calendar')
   const [selectedDay, setSelectedDay] = useState<number | null>(() => {
     const match = window.location.pathname.match(/^\/day\/(\d+)\/?$/)
@@ -240,13 +241,18 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       void (async () => {
         try {
           const [{ db }, firestore] = await Promise.all([getFirebaseServices(), import('firebase/firestore')])
+          const allDays = createStudyDays(saved)
+          const overallProgress = Math.round(allDays.reduce((sum, day) => sum + day.progress, 0) / allDays.length)
           const write = progressWriteQueue.current.catch(() => undefined).then(() => firestore.setDoc(firestore.doc(db, 'users', student.uid), {
               studyProgress: cleanProgressForFirestore(saved),
               studyProgressVersion: 2,
               studyProgressUpdatedAt: firestore.serverTimestamp(),
+              progreso: overallProgress,
+              ...(connectionTimestampPending.current ? { ultimaConexion: firestore.serverTimestamp() } : {}),
             }, { merge: true }))
           progressWriteQueue.current = write.then(() => undefined, () => undefined)
           await write
+          connectionTimestampPending.current = false
           if (sequence === progressWriteSequence.current) setProgressSyncState('saved')
         } catch (error) {
           if (sequence === progressWriteSequence.current) {

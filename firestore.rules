@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasAll([
+          'nombres', 'apellidos', 'correo', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'nombres', 'apellidos', 'correo', 'createdAt'
+        ])
+        && request.resource.data.correo == request.auth.token.email;
+
+      allow get: if isOwner(userId);
+
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'studyProgress', 'studyProgressVersion', 'studyProgressUpdatedAt',
+          'progreso', 'ultimaConexion'
+        ])
+        && request.resource.data.studyProgress is map
+        && request.resource.data.studyProgressVersion == 2
+        && request.resource.data.studyProgressUpdatedAt is timestamp
+        && request.resource.data.progreso is number
+        && request.resource.data.progreso >= 0
+        && request.resource.data.progreso <= 100
+        && request.resource.data.ultimaConexion is timestamp;
+
+      allow list, delete: if false;
+    }
+  }
+}
