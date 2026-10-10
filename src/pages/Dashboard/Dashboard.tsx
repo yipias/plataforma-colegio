@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { BookOpen, CalendarDays, ChartNoAxesColumnIncreasing, Check, ChevronDown, ChevronLeft, CircleCheck, CirclePlay, Calculator, Cloud, CloudOff, LockKeyhole, LogOut, LoaderCircle, Menu, Play, UserRound, X, type LucideIcon } from 'lucide-react'
 import type { SavedDayProgress, SavedProgress } from './studyData'
-import { createStudyDays, courseLabel, DAY_ONE_VIDEO_IDS, DAY_TWO_VIDEO_IDS, migrateSavedProgress } from './studyData'
+import { createStudyDays, courseLabel, DAY_ONE_VIDEO_IDS, DAY_TWO_VIDEO_IDS, DAY_THREE_VIDEO_IDS, migrateSavedProgress } from './studyData'
 import { getFirebaseServices } from '../../lib/firebase'
 
 type Student = { uid: string; name: string; email: string }
@@ -62,6 +62,29 @@ const dayTwoExerciseLevels = [
   'NIVEL 5 \u2014 RETO FINAL',
 ]
 
+const dayThreeExercises = [
+  { question: '¿Cuál es una palabra derivada de «pan»?', options: ['Mesa', 'Sol', 'Panadero', 'Árbol', 'Mar'], answer: 2 },
+  { question: 'En «desorden», ¿cuál es el prefijo?', options: ['de-', 'des-', 'orden-', '-den', '-en'], answer: 1 },
+  { question: '¿Cuál es el lexema de «florero»?', options: ['-ero', 'flore-', 'flor-', '-ro', 'flo-'], answer: 2 },
+  { question: '¿Qué palabra se formó principalmente mediante sufijación?', options: ['Rehacer', 'Sacapuntas', 'Paraguas', 'Felicidad', 'Bocacalle'], answer: 3 },
+  { question: '¿Qué palabra presenta un prefijo añadido a una palabra base?', options: ['Casita', 'Panadero', 'Imposible', 'Sacacorchos', 'Paraguas'], answer: 2 },
+  { question: '¿Cómo está formada la palabra «desigualdad»?', options: ['Solo por un lexema', 'Por dos lexemas', 'Por un lexema y un sufijo únicamente', 'Por dos prefijos', 'Por prefijo + lexema + sufijo'], answer: 4 },
+  { question: '¿Cuál es una palabra compuesta?', options: ['Panadero', 'Librería', 'Sacapuntas', 'Felizmente', 'Imposible'], answer: 2 },
+  { question: '¿Cómo se forma la palabra «paraguas»?', options: ['Derivación por sufijación', 'Composición', 'Derivación por prefijación', 'Antonimia', 'Sinonimia'], answer: 1 },
+  { question: '¿Qué dos palabras intervienen en la formación de «bocacalle»?', options: ['Boca + casa', 'Boca + camino', 'Bota + calle', 'Boca + calle', 'Bocado + calle'], answer: 3 },
+  { question: '¿Cuál es un ejemplo de formación parasintética?', options: ['Gatito', 'Panadero', 'Sacacorchos', 'Imposible', 'Enrojecer'], answer: 4 },
+  { question: '¿Por qué «enrojecer» puede considerarse parasintética?', options: ['Contiene dos palabras independientes', 'Únicamente se le añadió un sufijo', 'Únicamente se le añadió un prefijo', 'Se incorporan prefijo y sufijo simultáneamente a la raíz', 'Posee dos significados contrarios'], answer: 3 },
+  { question: '¿Qué palabra se forma con dos elementos léxicos y un sufijo?', options: ['Desorden', 'Florero', 'Infeliz', 'Quinceañero', 'Rehacer'], answer: 3 },
+  { question: 'Si dos palabras pueden intercambiarse en todos los contextos sin cambiar esencialmente el significado, existe:', options: ['Antonimia gradual', 'Hiponimia', 'Sinonimia total o absoluta', 'Antonimia recíproca', 'Hiperonimia'], answer: 2 },
+  { question: 'Si dos palabras de significado semejante solo se sustituyen en determinados contextos, existe:', options: ['Antonimia complementaria', 'Sinonimia parcial', 'Hiperonimia', 'Hiponimia', 'Antonimia recíproca'], answer: 1 },
+  { question: '¿Qué tipo de antonimia existe entre «frío» y «caliente»?', options: ['Complementaria', 'Recíproca', 'Gradual', 'Sinonímica', 'Hiperonímica'], answer: 2 },
+  { question: '¿Qué tipo de antonimia existe entre «vivo» y «muerto»?', options: ['Gradual', 'Complementaria', 'Recíproca', 'Parcial', 'Hiponímica'], answer: 1 },
+  { question: '¿Qué relación existe entre «comprar» y «vender»?', options: ['Sinonimia total', 'Antonimia gradual', 'Hiperonimia', 'Antonimia recíproca', 'Hiponimia'], answer: 3 },
+  { question: '¿Cuál es el hiperónimo de «perro», «gato» y «conejo»?', options: ['Perro', 'Mascota doméstica', 'Animal', 'Conejo', 'Mamífero pequeño'], answer: 2 },
+  { question: '¿Cuál de estas palabras es un hipónimo de «flor»?', options: ['Vegetal', 'Naturaleza', 'Planta', 'Rosa', 'Jardín'], answer: 3 },
+  { question: 'Entre «vehículo» y «automóvil», ¿qué relación semántica existe?', options: ['Son antónimos', 'Son sinónimos absolutos', 'Vehículo es hiperónimo y automóvil es hipónimo', 'Automóvil es hiperónimo y vehículo es hipónimo', 'Son antónimos recíprocos'], answer: 2 },
+]
+
 const navItems: Array<{ id: Section; label: string; icon: LucideIcon }> = [
   { id: 'calendar', label: 'Calendario', icon: CalendarDays },
   { id: 'progress', label: 'Mi progreso', icon: ChartNoAxesColumnIncreasing },
@@ -92,11 +115,19 @@ function cleanProgressForFirestore(progress: SavedProgress) {
   ]))
 }
 
+function getProgressSyncErrorCode(error: unknown) {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String((error as { code: unknown }).code)
+  }
+  return 'unknown'
+}
+
 function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => Promise<void> }) {
   const localSavedProgress = useMemo(() => readProgress(student.uid), [student.uid])
   const [saved, setSaved] = useState<SavedProgress>(localSavedProgress)
   const [progressReady, setProgressReady] = useState(false)
   const [progressSyncState, setProgressSyncState] = useState<'loading' | 'saving' | 'saved' | 'error'>('loading')
+  const [progressSyncError, setProgressSyncError] = useState<string | null>(null)
   const progressWriteQueue = useRef<Promise<void>>(Promise.resolve())
   const progressWriteSequence = useRef(0)
   const [section, setSection] = useState<Section>('calendar')
@@ -143,6 +174,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       } catch {
         if (!active) return
         setSaved(localSavedProgress)
+        setProgressSyncError('lectura: no se pudo leer el documento')
         setProgressSyncState('error')
         setProgressReady(true)
       }
@@ -157,6 +189,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
 
     localStorage.setItem(`study-progress-${student.uid}`, JSON.stringify(saved))
     setProgressSyncState('saving')
+    setProgressSyncError(null)
     const timeout = window.setTimeout(() => {
       const sequence = ++progressWriteSequence.current
       void (async () => {
@@ -170,8 +203,11 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
           progressWriteQueue.current = write.then(() => undefined, () => undefined)
           await write
           if (sequence === progressWriteSequence.current) setProgressSyncState('saved')
-        } catch {
-          if (sequence === progressWriteSequence.current) setProgressSyncState('error')
+        } catch (error) {
+          if (sequence === progressWriteSequence.current) {
+            setProgressSyncError(getProgressSyncErrorCode(error))
+            setProgressSyncState('error')
+          }
         }
       })()
     }, 250)
@@ -226,7 +262,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
   }
 
   function answerExercise(day: number, exerciseIndex: number, optionIndex: number) {
-    const exercises = day === 2 ? dayTwoExercises : dayOneExercises
+    const exercises = day === 2 ? dayTwoExercises : day === 3 ? dayThreeExercises : dayOneExercises
     const correct = exercises[exerciseIndex]?.answer === optionIndex
     setExerciseSelections((current) => ({ ...current, [`${day}:${exerciseIndex}`]: optionIndex }))
     if (!correct) return
@@ -280,7 +316,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       <main className="dashboard-main">
         <header className="desktop-topbar">
           <div><h1>¡Hola, {student.name.split(' ')[0]}!</h1><p>Sigue tu plan de estudio y avanza día a día.</p></div>
-          <span className={`progress-sync-indicator is-${progressSyncState}`} role="status" aria-live="polite" title={progressSyncState === 'error' ? 'No se pudo guardar el progreso en Firestore' : progressSyncState === 'saving' ? 'Guardando el progreso en Firestore' : 'Progreso sincronizado con tu cuenta'}>{progressSyncState === 'saving' ? <LoaderCircle size={15} className="sync-spinning" /> : progressSyncState === 'error' ? <CloudOff size={15} /> : <Cloud size={15} />}<span>{progressSyncState === 'saving' ? 'Guardando avance' : progressSyncState === 'error' ? 'Error al sincronizar' : 'Avance sincronizado'}</span></span>
+          <span className={`progress-sync-indicator is-${progressSyncState}`} role="status" aria-live="polite" title={progressSyncState === 'error' ? `No se pudo guardar el progreso en Firestore: ${progressSyncError || 'error desconocido'}` : progressSyncState === 'saving' ? 'Guardando el progreso en Firestore' : 'Progreso sincronizado con tu cuenta'}>{progressSyncState === 'saving' ? <LoaderCircle size={15} className="sync-spinning" /> : progressSyncState === 'error' ? <CloudOff size={15} /> : <Cloud size={15} />}<span>{progressSyncState === 'saving' ? 'Guardando avance' : progressSyncState === 'error' ? `Error: ${progressSyncError || 'sin código'}` : 'Avance sincronizado'}</span></span>
           <button className="account-menu" onClick={() => navigate('profile')}><span className="avatar"><UserRound size={16} /></span><span>{student.name}</span><ChevronDown size={15} aria-hidden="true" /></button>
         </header>
 
@@ -300,10 +336,10 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
                     <div key={index} className="video-row"><button className="video-open-button" onClick={() => openVideo(selected.day, index)} aria-label={`Reproducir video ${index + 1}`}><span className={`video-dot${selected.completedVideoIndexes.includes(index) ? ' is-done' : ''}`}>{selected.completedVideoIndexes.includes(index) ? <Check size={15} /> : <Play size={13} />}</span><span>Video {index + 1}<small>{selected.completedVideoIndexes.includes(index) ? 'Completado' : 'Pendiente'}</small></span></button><label className="video-check"><input type="checkbox" checked={selected.completedVideoIndexes.includes(index)} onChange={(event) => setVideoCompleted(selected.day, index, event.target.checked)} aria-label={`Marcar video ${index + 1} como completado`} /></label></div>
                   ))}</div>
                 </div>
-                {selected.day === 1 || selected.day === 2 ? (
+                {selected.day === 1 || selected.day === 2 || selected.day === 3 ? (
                   <section className="activity-card exercise-quiz" aria-labelledby="exercise-quiz-title">
-                    <div className="quiz-heading"><div><h3 id="exercise-quiz-title">{selected.day === 2 ? 'Jerarquía de operaciones' : 'Ejercicios de práctica'}</h3><p>Resueltos correctamente: {selected.exercisesCompleted} de 20</p></div><span className="quiz-counter">20 ejercicios</span></div>
-                    <div className="quiz-exercise-list">{(selected.day === 2 ? dayTwoExercises : dayOneExercises).map((exercise, exerciseIndex) => {
+                    <div className="quiz-heading"><div><h3 id="exercise-quiz-title">{selected.day === 2 ? 'Jerarquía de operaciones' : selected.day === 3 ? 'Derivación, composición y relaciones semánticas' : 'Ejercicios de práctica'}</h3><p>Resueltos correctamente: {selected.exercisesCompleted} de 20</p></div><span className="quiz-counter">20 ejercicios</span></div>
+                    <div className="quiz-exercise-list">{(selected.day === 2 ? dayTwoExercises : selected.day === 3 ? dayThreeExercises : dayOneExercises).map((exercise, exerciseIndex) => {
                       const completed = selected.completedExerciseIndexes.includes(exerciseIndex)
                       const selectedOption = exerciseSelections[`${selected.day}:${exerciseIndex}`]
                       const chosenCorrect = completed || selectedOption === exercise.answer
@@ -345,9 +381,10 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       </main>
 
       <nav className="mobile-bottom-nav" aria-label="Navegación inferior">{(['calendar', 'progress', 'communication', 'mathematics'] as Section[]).map((id) => { const item = navItems.find((entry) => entry.id === id)!; return <button key={id} className={section === id ? 'is-active' : ''} onClick={() => navigate(id)}><item.icon size={18} strokeWidth={1.8} aria-hidden="true" />{id === 'progress' ? 'Progreso' : item.label}</button> })}</nav>
-      {activeVideo && <div className="video-modal-backdrop" role="presentation" onClick={() => setActiveVideo(null)}><section className="video-modal" role="dialog" aria-modal="true" aria-label={`Día ${activeVideo.day}: Vídeo ${activeVideo.videoIndex + 1}`} onClick={(event) => event.stopPropagation()}><header><strong>Día {activeVideo.day}: Vídeo {activeVideo.videoIndex + 1}</strong><button className="video-modal-close" onClick={() => setActiveVideo(null)} aria-label="Cerrar video"><X size={20} /></button></header><div className="video-player-frame"><iframe src={`https://www.youtube-nocookie.com/embed/${(activeVideo.day === 2 ? DAY_TWO_VIDEO_IDS : DAY_ONE_VIDEO_IDS)[activeVideo.videoIndex]}?autoplay=1&rel=0`} title={`Vídeo ${activeVideo.videoIndex + 1} de la lista de reproducción`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div></section></div>}
+      {activeVideo && <div className="video-modal-backdrop" role="presentation" onClick={() => setActiveVideo(null)}><section className="video-modal" role="dialog" aria-modal="true" aria-label={`Día ${activeVideo.day}: Vídeo ${activeVideo.videoIndex + 1}`} onClick={(event) => event.stopPropagation()}><header><strong>Día {activeVideo.day}: Vídeo {activeVideo.videoIndex + 1}</strong><button className="video-modal-close" onClick={() => setActiveVideo(null)} aria-label="Cerrar video"><X size={20} /></button></header><div className="video-player-frame"><iframe src={`https://www.youtube-nocookie.com/embed/${(activeVideo.day === 3 ? DAY_THREE_VIDEO_IDS : activeVideo.day === 2 ? DAY_TWO_VIDEO_IDS : DAY_ONE_VIDEO_IDS)[activeVideo.videoIndex]}?autoplay=1&rel=0`} title={`Vídeo ${activeVideo.videoIndex + 1} de la lista de reproducción`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div></section></div>}
     </div>
   )
 }
 
 export default Dashboard
+
