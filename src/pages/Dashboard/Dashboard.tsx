@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { BookOpen, CalendarDays, ChartNoAxesColumnIncreasing, Check, ChevronDown, ChevronLeft, CircleCheck, CirclePlay, Calculator, Cloud, CloudOff, LockKeyhole, LogOut, LoaderCircle, Menu, Play, UserRound, X, type LucideIcon } from 'lucide-react'
 import type { SavedDayProgress, SavedProgress } from './studyData'
-import { createStudyDays, courseLabel, DAY_ONE_VIDEO_IDS, DAY_TWO_VIDEO_IDS, DAY_THREE_VIDEO_IDS, migrateSavedProgress } from './studyData'
+import { createStudyDays, courseLabel, DAY_ONE_VIDEO_IDS, DAY_TWO_VIDEO_IDS, DAY_THREE_VIDEO_IDS, DAY_FOUR_VIDEO_IDS, migrateSavedProgress } from './studyData'
 import { getFirebaseServices } from '../../lib/firebase'
 
 type Student = { uid: string; name: string; email: string }
@@ -83,6 +83,51 @@ const dayThreeExercises = [
   { question: '¿Cuál es el hiperónimo de «perro», «gato» y «conejo»?', options: ['Perro', 'Mascota doméstica', 'Animal', 'Conejo', 'Mamífero pequeño'], answer: 2 },
   { question: '¿Cuál de estas palabras es un hipónimo de «flor»?', options: ['Vegetal', 'Naturaleza', 'Planta', 'Rosa', 'Jardín'], answer: 3 },
   { question: 'Entre «vehículo» y «automóvil», ¿qué relación semántica existe?', options: ['Son antónimos', 'Son sinónimos absolutos', 'Vehículo es hiperónimo y automóvil es hipónimo', 'Automóvil es hiperónimo y vehículo es hipónimo', 'Son antónimos recíprocos'], answer: 2 },
+]
+
+const dayFourExercises = [
+  { question: '¿Cuál de los siguientes números es múltiplo de 7?', options: ['36', '40', '42', '45', '50'], answer: 2 },
+  { question: '¿Cuáles son los primeros cinco múltiplos positivos de 6?', options: ['1, 2, 3, 4, 5', '6, 10, 14, 18, 22', '6, 12, 18, 24, 30', '6, 18, 24, 30, 36', '12, 18, 24, 30, 42'], answer: 2 },
+  { question: '¿Por qué 84 es múltiplo de 12?', options: ['Porque 84 + 12 = 96', 'Porque 84 − 12 = 72', 'Porque 84 es un número par', 'Porque 12 × 7 = 84', 'Porque 84 termina en 4'], answer: 3 },
+  { question: '¿Cuál de los siguientes números es divisor de 36?', options: ['8', '10', '12', '14', '16'], answer: 2 },
+  { question: '¿Cuál es la lista completa de divisores positivos de 18?', options: ['1, 2, 3, 6, 18', '1, 3, 6, 9, 18', '1, 2, 3, 6, 9, 18', '2, 3, 6, 9, 18', '1, 2, 6, 9, 18'], answer: 2 },
+  { question: '¿Cuántos divisores positivos tiene el número 24?', options: ['4', '5', '6', '7', '8'], answer: 4 },
+  { question: '¿Cuál de los siguientes números es primo?', options: ['21', '29', '33', '39', '51'], answer: 1 },
+  { question: '¿Cuál de los siguientes números es compuesto?', options: ['13', '17', '19', '23', '27'], answer: 4 },
+  { question: '¿Cómo se clasifica el número 1?', options: ['Número primo', 'Número compuesto', 'Número par y primo', 'No es primo ni compuesto', 'Primer número compuesto'], answer: 3 },
+  { question: '¿Cuál de los siguientes números es divisible entre 2?', options: ['315', '427', '538', '641', '753'], answer: 2 },
+  { question: '¿Cuál de los siguientes números es divisible entre 5?', options: ['1232', '3417', '5628', '1245', '7813'], answer: 3 },
+  { question: '¿Cuál de los siguientes números es divisible entre 10?', options: ['3255', '4182', '6115', '8534', '7320'], answer: 4 },
+  { question: '¿Cuál de los siguientes números es divisible entre 3?', options: ['121', '123', '125', '127', '131'], answer: 1 },
+  { question: '¿Cuál de estos números es divisible entre 2 y entre 3 al mismo tiempo?', options: ['115', '118', '122', '114', '125'], answer: 3 },
+  { question: '¿Cuál de estos números es divisible entre 2, 3 y 5 al mismo tiempo?', options: ['215', '320', '425', '512', '450'], answer: 4 },
+  { question: '¿Cuál es la descomposición en factores primos de 60?', options: ['2 × 3 × 10', '2² × 15', '2² × 3 × 5', '2 × 5 × 6', '3² × 5'], answer: 2 },
+  { question: '¿Cuál es la factorización prima de 84?', options: ['2 × 3 × 7', '2² × 3 × 7', '2³ × 3 × 7', '2² × 5 × 7', '3² × 7'], answer: 1 },
+  { question: '¿Cuál es la descomposición en factores primos de 150?', options: ['2 × 3 × 5', '2² × 3 × 5', '2 × 3² × 5', '2 × 3 × 5²', '3 × 5³'], answer: 3 },
+  { question: '¿Cuál es la factorización prima de 360?', options: ['2² × 3² × 5', '2³ × 3 × 5', '2³ × 3² × 5', '2⁴ × 3 × 5', '2³ × 3² × 7'], answer: 2 },
+  { question: '¿Cuál es la factorización prima de 840?', options: ['2² × 3 × 5 × 7', '2³ × 3² × 5 × 7', '2³ × 3 × 5 × 7', '2⁴ × 3 × 5 × 7', '2³ × 5² × 7'], answer: 2 },
+  { question: '¿Qué número corresponde a la factorización 2² × 3 × 5²?', options: ['150', '200', '250', '300', '600'], answer: 3 },
+  { question: '¿Cuál es el MCM de 6 y 8?', options: ['12', '16', '18', '24', '48'], answer: 3 },
+  { question: '¿Cuál es el MCM de 12 y 18?', options: ['6', '24', '30', '36', '72'], answer: 3 },
+  { question: 'Dos buses salen juntos. Uno sale cada 15 minutos y otro cada 20 minutos. ¿Cuándo volverán a salir juntos?', options: ['30 minutos', '40 minutos', '45 minutos', '60 minutos', '120 minutos'], answer: 3 },
+  { question: '¿Cuál es el MCD de 18 y 24?', options: ['2', '3', '6', '9', '12'], answer: 2 },
+  { question: '¿Cuál es el MCD de 48 y 72?', options: ['6', '8', '12', '18', '24'], answer: 4 },
+  { question: 'Hay 36 caramelos rojos y 48 azules. ¿Cuál es la mayor cantidad de grupos idénticos que se puede formar sin que sobre ninguno?', options: ['4', '6', '8', '12', '18'], answer: 3 },
+  { question: '¿Cuál es el menor número positivo múltiplo de 6, 8 y 10?', options: ['24', '40', '60', '80', '120'], answer: 4 },
+  { question: '72 = 2³ × 3² y 120 = 2³ × 3 × 5. ¿Cuál es el MCD de 72 y 120?', options: ['6', '8', '12', '18', '24'], answer: 4 },
+  { question: 'Tres luces se encienden juntas. Sus intervalos son 12, 18 y 30 segundos. ¿Cuándo volverán a encenderse simultáneamente?', options: ['60 segundos', '90 segundos', '120 segundos', '150 segundos', '180 segundos'], answer: 4 },
+]
+
+const dayFourExerciseTopics = [
+  'TEMA 1 — MÚLTIPLOS DE UN NÚMERO · VIDEO 1',
+  'TEMA 2 — DIVISORES DE UN NÚMERO · VIDEO 2',
+  'TEMA 3 — NÚMEROS PRIMOS Y COMPUESTOS · VIDEO 3',
+  'TEMA 4 — DIVISIBILIDAD ENTRE 2, 5 Y 10 · VIDEO 4',
+  'TEMA 5 — CRITERIOS DE DIVISIBILIDAD · VIDEO 5',
+  'TEMA 6 — FACTORES PRIMOS · VIDEO 6',
+  'TEMA 7 — FACTORIZACIÓN DE NÚMEROS MAYORES · VIDEO 7',
+  'TEMA 8 — MÍNIMO COMÚN MÚLTIPLO · VIDEO 8',
+  'TEMA 9 — MÁXIMO COMÚN DIVISOR · VIDEO 9',
 ]
 
 const navItems: Array<{ id: Section; label: string; icon: LucideIcon }> = [
@@ -262,7 +307,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
   }
 
   function answerExercise(day: number, exerciseIndex: number, optionIndex: number) {
-    const exercises = day === 2 ? dayTwoExercises : day === 3 ? dayThreeExercises : dayOneExercises
+    const exercises = day === 2 ? dayTwoExercises : day === 3 ? dayThreeExercises : day === 4 ? dayFourExercises : dayOneExercises
     const correct = exercises[exerciseIndex]?.answer === optionIndex
     setExerciseSelections((current) => ({ ...current, [`${day}:${exerciseIndex}`]: optionIndex }))
     if (!correct) return
@@ -336,15 +381,16 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
                     <div key={index} className="video-row"><button className="video-open-button" onClick={() => openVideo(selected.day, index)} aria-label={`Reproducir video ${index + 1}`}><span className={`video-dot${selected.completedVideoIndexes.includes(index) ? ' is-done' : ''}`}>{selected.completedVideoIndexes.includes(index) ? <Check size={15} /> : <Play size={13} />}</span><span>Video {index + 1}<small>{selected.completedVideoIndexes.includes(index) ? 'Completado' : 'Pendiente'}</small></span></button><label className="video-check"><input type="checkbox" checked={selected.completedVideoIndexes.includes(index)} onChange={(event) => setVideoCompleted(selected.day, index, event.target.checked)} aria-label={`Marcar video ${index + 1} como completado`} /></label></div>
                   ))}</div>
                 </div>
-                {selected.day === 1 || selected.day === 2 || selected.day === 3 ? (
+                {selected.day === 1 || selected.day === 2 || selected.day === 3 || selected.day === 4 ? (
                   <section className="activity-card exercise-quiz" aria-labelledby="exercise-quiz-title">
-                    <div className="quiz-heading"><div><h3 id="exercise-quiz-title">{selected.day === 2 ? 'Jerarquía de operaciones' : selected.day === 3 ? 'Derivación, composición y relaciones semánticas' : 'Ejercicios de práctica'}</h3><p>Resueltos correctamente: {selected.exercisesCompleted} de 20</p></div><span className="quiz-counter">20 ejercicios</span></div>
-                    <div className="quiz-exercise-list">{(selected.day === 2 ? dayTwoExercises : selected.day === 3 ? dayThreeExercises : dayOneExercises).map((exercise, exerciseIndex) => {
+                    <div className="quiz-heading"><div><h3 id="exercise-quiz-title">{selected.day === 2 ? 'Jerarquía de operaciones' : selected.day === 3 ? 'Derivación, composición y relaciones semánticas' : selected.day === 4 ? 'Múltiplos, divisores y divisibilidad' : 'Ejercicios de práctica'}</h3><p>Resueltos correctamente: {selected.exercisesCompleted} de {selected.totalExercises}</p></div><span className="quiz-counter">{selected.totalExercises} ejercicios</span></div>
+                    <div className="quiz-exercise-list">{(selected.day === 2 ? dayTwoExercises : selected.day === 3 ? dayThreeExercises : selected.day === 4 ? dayFourExercises : dayOneExercises).map((exercise, exerciseIndex) => {
                       const completed = selected.completedExerciseIndexes.includes(exerciseIndex)
                       const selectedOption = exerciseSelections[`${selected.day}:${exerciseIndex}`]
                       const chosenCorrect = completed || selectedOption === exercise.answer
                       return <article className={'quiz-exercise' + (completed ? ' is-correct' : selectedOption !== undefined ? ' is-incorrect' : '')} key={exerciseIndex}>
                         {selected.day === 2 && exerciseIndex % 4 === 0 && <h4 className="quiz-level-title">{dayTwoExerciseLevels[exerciseIndex / 4]}</h4>}
+                        {selected.day === 4 && exerciseIndex % 3 === 0 && <h4 className="quiz-level-title">{exerciseIndex === 27 ? 'RETO FINAL — COMBINANDO LOS TEMAS' : dayFourExerciseTopics[exerciseIndex / 3]}</h4>}
                         <div className="quiz-question"><span>Ejercicio {exerciseIndex + 1}</span><strong>{exercise.question}</strong></div>
                         <div className="quiz-options">{exercise.options.map((option, optionIndex) => {
                           const isRight = optionIndex === exercise.answer && chosenCorrect
@@ -381,7 +427,7 @@ function Dashboard({ student, onSignOut }: { student: Student; onSignOut: () => 
       </main>
 
       <nav className="mobile-bottom-nav" aria-label="Navegación inferior">{(['calendar', 'progress', 'communication', 'mathematics'] as Section[]).map((id) => { const item = navItems.find((entry) => entry.id === id)!; return <button key={id} className={section === id ? 'is-active' : ''} onClick={() => navigate(id)}><item.icon size={18} strokeWidth={1.8} aria-hidden="true" />{id === 'progress' ? 'Progreso' : item.label}</button> })}</nav>
-      {activeVideo && <div className="video-modal-backdrop" role="presentation" onClick={() => setActiveVideo(null)}><section className="video-modal" role="dialog" aria-modal="true" aria-label={`Día ${activeVideo.day}: Vídeo ${activeVideo.videoIndex + 1}`} onClick={(event) => event.stopPropagation()}><header><strong>Día {activeVideo.day}: Vídeo {activeVideo.videoIndex + 1}</strong><button className="video-modal-close" onClick={() => setActiveVideo(null)} aria-label="Cerrar video"><X size={20} /></button></header><div className="video-player-frame"><iframe src={`https://www.youtube-nocookie.com/embed/${(activeVideo.day === 3 ? DAY_THREE_VIDEO_IDS : activeVideo.day === 2 ? DAY_TWO_VIDEO_IDS : DAY_ONE_VIDEO_IDS)[activeVideo.videoIndex]}?autoplay=1&rel=0`} title={`Vídeo ${activeVideo.videoIndex + 1} de la lista de reproducción`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div></section></div>}
+      {activeVideo && <div className="video-modal-backdrop" role="presentation" onClick={() => setActiveVideo(null)}><section className="video-modal" role="dialog" aria-modal="true" aria-label={`Día ${activeVideo.day}: Vídeo ${activeVideo.videoIndex + 1}`} onClick={(event) => event.stopPropagation()}><header><strong>Día {activeVideo.day}: Vídeo {activeVideo.videoIndex + 1}</strong><button className="video-modal-close" onClick={() => setActiveVideo(null)} aria-label="Cerrar video"><X size={20} /></button></header><div className="video-player-frame"><iframe src={`https://www.youtube-nocookie.com/embed/${(activeVideo.day === 4 ? DAY_FOUR_VIDEO_IDS : activeVideo.day === 3 ? DAY_THREE_VIDEO_IDS : activeVideo.day === 2 ? DAY_TWO_VIDEO_IDS : DAY_ONE_VIDEO_IDS)[activeVideo.videoIndex]}?autoplay=1&rel=0`} title={`Vídeo ${activeVideo.videoIndex + 1} de la lista de reproducción`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div></section></div>}
     </div>
   )
 }

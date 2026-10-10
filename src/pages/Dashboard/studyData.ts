@@ -118,13 +118,17 @@ export const DAY_TWO_VIDEO_IDS = [
   'mhKRnS-b-No', 'YwAS-gj0VZY', 'gzoUgFQQkS4',
 ] as const
 export const DAY_THREE_VIDEO_IDS = ['ttqE6v9sWDM', 'DM24GXkQwkY', 'WXCbyo5mfk8'] as const
+export const DAY_FOUR_VIDEO_IDS = [
+  'W3g4QxlN4xQ', '4nuJEe5lRrU', '_9SYCAbh5oA', 'qQ1CotiVqww',
+  '4tK2XIEx-fg', 'nhK3B4Sq234', 'G_F7nxw1OGA', 'oagiWPRw2L0', '63lCHstB5Wk',
+] as const
 
 export function createStudyDays(saved: SavedProgress): StudyDay[] {
   const days = curriculum.map(([course, title], index) => {
     const day = index + 1
     const isPractice = course === 'practice'
-    const totalVideos = isPractice ? 0 : day === 1 ? DAY_ONE_VIDEO_IDS.length : day === 2 ? DAY_TWO_VIDEO_IDS.length : day === 3 ? DAY_THREE_VIDEO_IDS.length : 3
-    const totalExercises = isPractice ? 0 : 20
+    const totalVideos = isPractice ? 0 : day === 1 ? DAY_ONE_VIDEO_IDS.length : day === 2 ? DAY_TWO_VIDEO_IDS.length : day === 3 ? DAY_THREE_VIDEO_IDS.length : day === 4 ? DAY_FOUR_VIDEO_IDS.length : 3
+    const totalExercises = isPractice ? 0 : day === 4 ? 30 : 20
     const progress = saved[day] || { videosCompleted: 0, exercisesCompleted: 0 }
     const completedVideoIndexes = progress.completedVideoIndexes
       ? [...new Set(progress.completedVideoIndexes.filter((videoIndex) => Number.isInteger(videoIndex) && videoIndex >= 0 && videoIndex < totalVideos))]
